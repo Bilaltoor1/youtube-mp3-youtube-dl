@@ -13,7 +13,35 @@ import logging
 
 load_dotenv()
 app = Flask(__name__)
-CORS(app)
+
+# Check if we're in development mode
+is_development = os.getenv('FLASK_ENV') == 'development' or os.getenv('FLASK_DEBUG') == 'True'
+
+# Configure CORS with comprehensive settings
+if is_development:
+    # More permissive CORS for development
+    CORS(app, 
+         origins="*",
+         methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+         allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+         supports_credentials=False,
+         max_age=600
+    )
+else:
+    # Restrictive CORS for production
+    CORS(app, 
+         origins=[
+             "https://yttmp3.com",
+             "http://yttmp3.com", 
+             "http://localhost:3000",
+             "http://localhost",
+             "https://localhost",
+         ],
+         methods=["GET", "POST", "OPTIONS"],
+         allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+         supports_credentials=True,
+         max_age=600
+    )
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -150,6 +178,22 @@ def get_video_info():
     except Exception as e:
         logger.error(f"Unexpected error during info extraction: {str(e)}")
         return jsonify({'error': 'Failed to extract video information'}), 500
+
+# Backward compatibility routes without /api/ prefix
+@app.route('/video-info', methods=['POST'])
+def get_video_info_compat():
+    """Backward compatibility route for video-info without /api/ prefix"""
+    return get_video_info()
+
+@app.route('/convert', methods=['POST'])
+def convert_compat():
+    """Backward compatibility route for convert without /api/ prefix"""
+    return convert()
+
+@app.route('/health', methods=['GET'])
+def health_compat():
+    """Backward compatibility route for health without /api/ prefix"""
+    return health_check()
 
 @app.route('/api/progress/<task_id>', methods=['GET'])
 def get_progress(task_id):
@@ -328,6 +372,23 @@ def not_found(error):
 def internal_error(error):
     """Handle 500 errors"""
     return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/cors-test', methods=['GET', 'POST', 'OPTIONS'])
+def cors_test():
+    """Simple endpoint to test CORS configuration"""
+    if request.method == 'OPTIONS':
+        # Preflight response
+        response = jsonify({'message': 'CORS preflight successful'})
+        return response
+    
+    return jsonify({
+        'message': 'CORS test successful',
+        'method': request.method,
+        'origin': request.headers.get('Origin', 'No origin header'),
+        'user_agent': request.headers.get('User-Agent', 'No user agent'),
+        'timestamp': datetime.now().isoformat()
+    })
+
 if __name__ == '__main__':
     # Run cleanup on startup
     cleanup_old_files()

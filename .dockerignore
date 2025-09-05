@@ -77,10 +77,8 @@ instance/
 .gitignore
 README.md
 
-# Docker
-Dockerfile*
-docker-compose*
-.dockerignore
+# Docker (keep these included so builds work)
+# (Do NOT ignore Dockerfile or compose files)
 
 # Downloads and temporary files
 downloads/
