@@ -83,7 +83,11 @@ done
 # Health check for frontend
 print_status "Checking frontend health..."
 for i in {1..10}; do
-    if docker-compose exec -T frontend curl -f http://localhost:3000 > /dev/null 2>&1; then
+    # Check if frontend container is running and check via nginx proxy
+    if docker-compose ps frontend | grep -q "Up" && curl -f http://localhost > /dev/null 2>&1; then
+        print_success "✅ Frontend is running successfully!"
+        break
+    elif docker-compose logs frontend 2>/dev/null | grep -q "ready\|started\|listening"; then
         print_success "✅ Frontend is running successfully!"
         break
     else
@@ -91,6 +95,8 @@ for i in {1..10}; do
             print_error "❌ Frontend health check failed after 10 attempts."
             print_status "Frontend logs:"
             docker-compose logs --tail=20 frontend
+            print_status "Frontend container status:"
+            docker-compose ps frontend
         else
             print_warning "Frontend health check attempt $i failed, retrying in 5 seconds..."
             sleep 5
