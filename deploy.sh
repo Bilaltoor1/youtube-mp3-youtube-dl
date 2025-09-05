@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 DOMAIN="yttmp3.com"
-EMAIL="your-email@example.com"  # Change this to your email
+EMAIL="bilaltoor786786@gmail.com"  # Change this to your email
 PROJECT_DIR="/opt/yttmp3"
 SERVICE_NAME="yttmp3"
 
@@ -37,10 +37,8 @@ log_error() {
 
 # Check if running as root
 check_root() {
-    if [[ $EUID -eq 0 ]]; then
-        log_error "This script should not be run as root"
-        exit 1
-    fi
+    # Allow running as root for deployment
+    log_info "Running as root - proceeding with deployment"
 }
 
 # Check if Docker is installed
@@ -137,15 +135,18 @@ setup_firewall() {
 deploy_application() {
     log_info "Building and deploying application..."
     
-    # Stop any existing containers
-    docker-compose down --remove-orphans || true
+    # Stop and remove all existing containers
+    log_info "Cleaning up existing containers..."
+    docker-compose down --remove-orphans --volumes || true
+    docker system prune -f || true
     
-    # Build and start services
+    # Build Docker images
     log_info "Building Docker images..."
     docker-compose build --no-cache
     
-    log_info "Starting services..."
-    docker-compose up -d
+    # Start only the required services
+    log_info "Starting services (backend, frontend, nginx, certbot)..."
+    docker-compose up -d backend frontend nginx certbot
     
     # Wait for services to be ready
     log_info "Waiting for services to start..."
@@ -154,7 +155,7 @@ deploy_application() {
     # Check service health
     check_services
     
-    log_success "Application deployed"
+    log_success "Application deployed with required services only"
 }
 
 # Check if services are healthy
