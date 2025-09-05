@@ -65,7 +65,7 @@ sleep 30
 # Health check for backend
 print_status "Checking backend health..."
 for i in {1..10}; do
-    if docker-compose exec -T backend curl -f http://localhost:5000/health > /dev/null 2>&1; then
+    if docker-compose exec -T backend curl -f http://localhost:5000/api/health > /dev/null 2>&1; then
         print_success "✅ Backend is running successfully!"
         break
     else
@@ -106,7 +106,7 @@ docker-compose run --rm certbot || {
 
 # Final domain check
 print_status "Checking domain accessibility..."
-if curl -k -f https://$DOMAIN/health > /dev/null 2>&1; then
+if curl -k -f https://$DOMAIN/api/health > /dev/null 2>&1; then
     print_success "✅ Domain is accessible at https://$DOMAIN"
 elif curl -f http://$DOMAIN > /dev/null 2>&1; then
     print_success "✅ Domain is accessible at http://$DOMAIN (SSL pending)"

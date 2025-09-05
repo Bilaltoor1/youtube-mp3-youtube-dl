@@ -201,6 +201,11 @@ def download_file(task_id):
         mimetype='audio/mpeg'
     )
 
+@app.route('/health', methods=['GET'])
+def health():
+    """Simple health check endpoint"""
+    return jsonify({'status': 'ok'})
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
