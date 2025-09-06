@@ -2,20 +2,26 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Make npm installs resilient in CI
+ENV CI=1 \
+		npm_config_legacy_peer_deps=true
+RUN npm ci --omit=dev --no-audit --no-fund \
+	|| npm install --omit=dev --legacy-peer-deps --no-audit --no-fund
 
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Ensure accidental PostCSS/Tailwind configs are not used at build time
+RUN rm -f postcss.config.mjs tailwind.config.js || true
 RUN npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-# Healthcheck deps
-RUN apk add --no-cache curl
+# Healthcheck deps and runtime libs for Next.js
+RUN apk add --no-cache curl libc6-compat
 # Copy standalone output
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
