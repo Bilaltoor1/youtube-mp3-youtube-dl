@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://yttmp3.com/api
+      - NEXT_PUBLIC_API_URL=/api
     volumes:
       - ./logs/frontend:/app/logs
     networks:
