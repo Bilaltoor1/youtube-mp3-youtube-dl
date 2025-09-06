@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY flask-api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade yt-dlp
 COPY flask-api/ .
 RUN mkdir -p downloads
 ENV PYTHONPATH=/app
