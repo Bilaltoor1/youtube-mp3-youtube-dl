@@ -1,0 +1,419 @@
+# Docker Commands Reference
+# Project: Your Project
+# Last Updated: September 6, 2025
+
+## 🚀 QUICK START (Production Deployment)
+cd ~/your-project
+
+# Full cleanup and rebuild
+docker compose down --remove-orphans --volumes
+docker system prune -f
+docker compose build --no-cache
+docker compose up -d nginx backend frontend
+
+# Check status
+docker compose ps
+docker compose logs -f
+
+## 🐳 CONTAINER MANAGEMENT
+
+### List Containers
+# All containers (running and stopped)
+docker ps -a
+
+# Only running containers
+docker ps
+
+# Filter by name
+docker ps -f name=app
+
+### Stop Containers
+# Stop specific containers
+docker stop app_frontend app_backend app_nginx
+
+# Stop all running containers
+docker stop $(docker ps -q)
+
+# Stop containers gracefully with timeout
+docker stop -t 30 app_frontend
+
+### Remove Containers
+# Remove specific containers
+docker rm app_frontend app_backend app_nginx
+
+# Remove all stopped containers
+docker container prune -f
+
+# Force remove running containers
+docker rm -f $(docker ps -aq)
+
+# Remove containers by pattern
+docker rm -f $(docker ps -aq -f name=app)
+
+### Container Logs
+# View logs for specific container
+docker logs app_backend
+
+# Follow logs in real-time
+docker logs -f app_backend
+
+# Last 50 lines
+docker logs --tail=50 app_backend
+
+# Logs with timestamps
+docker logs -t app_backend
+
+### Container Inspection
+# Inspect container details
+docker inspect app_backend
+
+# Get container IP
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' app_backend
+
+# Check container health
+docker inspect --format='{{.State.Health.Status}}' app_backend
+
+### Execute Commands in Running Containers
+# Access container shell
+docker exec -it app_backend /bin/bash
+
+# Run command in container
+docker exec app_backend curl -f http://localhost:5000/health
+
+# Check processes in container
+docker exec app_backend ps aux
+
+## 🖼️ IMAGE MANAGEMENT
+
+### List Images
+# All images
+docker images
+
+# Filter by repository
+docker images app*
+
+# Only dangling images
+docker images -f dangling=true
+
+### Build Images
+# Build from compose
+docker compose build
+
+# Build without cache
+docker compose build --no-cache
+
+# Build specific service
+docker compose build backend
+
+# Build with no cache for specific service
+docker compose build --no-cache frontend
+
+### Remove Images
+# Remove specific image
+docker rmi app-frontend
+
+# Remove images by pattern
+docker rmi $(docker images -q app*)
+
+# Remove dangling images
+docker image prune -f
+
+# Remove all unused images
+docker image prune -a -f
+
+# Force remove image
+docker rmi -f app-backend
+
+### Image Inspection
+# Show image layers
+docker history app-frontend
+
+# Inspect image details
+docker inspect app-backend
+
+## 💾 VOLUME MANAGEMENT
+
+### List Volumes
+docker volume ls
+
+# Filter by name
+docker volume ls -f name=app
+
+### Inspect Volumes
+# Volume details
+docker volume inspect ssl_data
+
+# Check volume usage
+docker system df -v
+
+### Remove Volumes
+# Remove specific volume
+docker volume rm ssl_data
+
+# Remove all unused volumes
+docker volume prune -f
+
+# Remove volumes by pattern
+docker volume rm $(docker volume ls -q -f name=app)
+
+## 🌐 NETWORK MANAGEMENT
+
+### List Networks
+docker network ls
+
+# Filter by name
+docker network ls -f name=app
+
+### Inspect Networks
+docker network inspect app_network
+
+# Check network connections
+docker network inspect bridge
+
+### Remove Networks
+# Remove specific network
+docker network rm app_network
+
+# Remove unused networks
+docker network prune -f
+
+## 🧹 SYSTEM CLEANUP
+
+### Full System Cleanup
+# Remove all unused containers, networks, images, and volumes
+docker system prune -a -f --volumes
+
+# Aggressive cleanup (removes everything not in use)
+docker system prune -a -f --volumes
+
+### Specific Cleanup
+# Remove stopped containers
+docker container prune -f
+
+# Remove unused images
+docker image prune -a -f
+
+# Remove unused volumes
+docker volume prune -f
+
+# Remove unused networks
+docker network prune -f
+
+# Remove build cache
+docker builder prune -a -f
+
+## 📦 DOCKER COMPOSE OPERATIONS
+
+### Basic Operations
+# Start services
+docker compose up -d
+
+# Start specific services
+docker compose up -d backend frontend
+
+# Stop services
+docker compose down
+
+# Stop and remove volumes
+docker compose down --volumes
+
+# Stop, remove containers, networks, and volumes
+docker compose down --remove-orphans --volumes
+
+### Service Management
+# Restart all services
+docker compose restart
+
+# Restart specific service
+docker compose restart nginx
+
+# Scale service
+docker compose up -d --scale backend=3
+
+### Logs and Monitoring
+# View all logs
+docker compose logs
+
+# Follow logs
+docker compose logs -f
+
+# Logs for specific service
+docker compose logs -f backend
+
+# Logs with timestamps
+docker compose logs -t
+
+### Configuration
+# Validate compose file
+docker compose config
+
+# List services
+docker compose ps
+
+# Show service status
+docker compose ps --format table
+
+## 🔧 TROUBLESHOOTING
+
+### Health Checks
+# Manual health check for backend
+curl -f http://localhost:5000/health
+
+# Check via nginx
+curl -k https://yourdomain.com/api/health
+
+# Frontend health
+curl -I https://yourdomain.com/
+
+### Debug Container Issues
+# Check container resource usage
+docker stats
+
+# Check container events
+docker events --since 1h
+
+# Export container logs for analysis
+docker logs app_backend > backend_logs.txt
+
+### Network Debugging
+# Test connectivity between containers
+docker exec app_backend ping frontend
+
+# Check DNS resolution
+docker exec app_backend nslookup frontend
+
+# Test API endpoints
+docker exec app_backend curl -f http://frontend:3000
+
+### SSL/TLS Issues
+# Check certificate validity
+openssl s_client -connect yourdomain.com:443 -servername yourdomain.com
+
+# Renew SSL certificate
+docker compose run --rm certbot
+
+# Reload nginx after SSL changes
+docker compose exec nginx nginx -s reload
+
+### Performance Monitoring
+# Container resource usage
+docker stats app_backend app_frontend
+
+# Disk usage
+docker system df
+
+# Check for memory leaks
+docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+
+## 🚨 EMERGENCY COMMANDS
+
+### Nuclear Option - Remove Everything
+# Stop all containers
+docker stop $(docker ps -q) 2>/dev/null || true
+
+# Remove all containers
+docker rm -f $(docker ps -aq) 2>/dev/null || true
+
+# Remove all images
+docker rmi -f $(docker images -q) 2>/dev/null || true
+
+# Remove all volumes
+docker volume rm $(docker volume ls -q) 2>/dev/null || true
+
+# Remove all networks
+docker network rm $(docker network ls -q) 2>/dev/null || true
+
+# Final cleanup
+docker system prune -a -f --volumes
+
+### Quick Restart
+# Restart all services
+docker compose down && docker compose up -d
+
+# Force rebuild and restart
+docker compose down --remove-orphans --volumes
+docker compose build --no-cache
+docker compose up -d
+
+## 📊 MONITORING COMMANDS
+
+### Real-time Monitoring
+# Watch container status
+watch docker compose ps
+
+# Monitor logs
+docker compose logs -f --tail=100
+
+# Resource monitoring
+docker stats $(docker ps --format "table {{.Names}}")
+
+### Backup Operations
+# Export container filesystem
+docker export app_backend > backend_backup.tar
+
+# Save image
+docker save app-frontend > frontend_image.tar
+
+# Backup volumes
+docker run --rm -v ssl_data:/data -v $(pwd):/backup alpine tar czf /backup/ssl_backup.tar.gz -C /data .
+
+## 🔒 SECURITY COMMANDS
+
+### Image Security
+# Scan image for vulnerabilities
+docker scan app-backend
+
+# Check image layers
+docker history --no-trunc app-frontend
+
+### Access Control
+# Check user permissions
+docker info | grep -A 10 "Security Options"
+
+# Run container as non-root
+docker run --user 1000:1000 your-image
+
+## 📝 USEFUL ALIASES (Add to ~/.bashrc)
+
+# Quick status
+alias dcps='docker compose ps'
+alias dclogs='docker compose logs -f'
+alias dcbuild='docker compose build --no-cache'
+alias dcup='docker compose up -d'
+alias dcdown='docker compose down --remove-orphans --volumes'
+
+# Cleanup
+alias dcclean='docker system prune -a -f --volumes'
+alias dcnuke='docker stop $(docker ps -q) 2>/dev/null; docker rm -f $(docker ps -aq) 2>/dev/null; docker system prune -a -f --volumes'
+
+# Monitoring
+alias dcstats='docker stats $(docker ps --format "{{.Names}}")'
+alias dcevents='docker events --since 1h'
+
+## 🎯 PRODUCTION CHECKLIST
+
+### Pre-Deployment
+- [ ] DNS points to server IP
+- [ ] Ports 80/443 open in firewall
+- [ ] SSL certificates ready
+- [ ] Environment variables set
+- [ ] Volumes created and mounted
+
+### Post-Deployment
+- [ ] Services are healthy
+- [ ] SSL certificate valid
+- [ ] Domain accessible
+- [ ] CORS working
+- [ ] API endpoints responding
+- [ ] Frontend loading
+
+### Monitoring
+- [ ] Logs are clean
+- [ ] Resource usage normal
+- [ ] Health checks passing
+- [ ] SSL certificate auto-renewal working
+
+---
+# End of Docker Commands Reference
+# Save this file as docker-commands.md for future reference
+<parameter name="filePath">/home/muhammadbilal/youtube-mp3-youtube-dl/docker-commands-reference.md
