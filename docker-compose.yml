@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Frontend Service (Next.js)
   frontend:
@@ -63,17 +61,13 @@ services:
   certbot:
     image: certbot/certbot
     container_name: yttmp3_certbot
-  volumes:
-    - ./ssl:/etc/letsencrypt
-    - ./ssl-challenge:/var/www/certbot
-  command: certonly --webroot --webroot-path=/var/www/certbot --email bilaltoor786786@gmail.com --agree-tos --no-eff-email -d yttmp3.com -d www.yttmp3.com
-  networks:
-    - yttmp3_network
+    volumes:
+      - ./ssl:/etc/letsencrypt
+      - ./ssl-challenge:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email bilaltoor786786@gmail.com --agree-tos --no-eff-email -d yttmp3.com -d www.yttmp3.com
+    networks:
+      - yttmp3_network
 
 networks:
   yttmp3_network:
     driver: bridge
-
-volumes:
-  ssl_data:
-  downloads_data:
