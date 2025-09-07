@@ -1,5 +1,4 @@
-import { spawn } from 'node:child_process';
-import { spawnYtDlp, requestYtDlpConvert } from './ytdlp';
+import { runYtDlp } from './ytdlp';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
@@ -32,8 +31,9 @@ export function getJob(taskId) {
 
 export function enqueue(url, bitrate = 128) {
   const taskId = randomUUID();
-  const sharedTmp = process.env.USE_YTDLP_CONTAINER ? '/tmp' : tmpdir();
-  const outPath = join(sharedTmp, `${taskId}.mp3`);
+  const useSidecar = process.env.USE_YTDLP_CONTAINER === '1' || process.env.USE_YTDLP_CONTAINER === 'true';
+  const baseDir = useSidecar ? '/tmp' : tmpdir();
+  const outPath = join(baseDir, `${taskId}.mp3`);
   const job = {
     id: taskId,
     url,
@@ -70,42 +70,21 @@ async function processJob(taskId) {
   if (!job) return;
   update(taskId, { status: 'downloading', message: 'Starting download...' });
 
+  const useSidecar = process.env.USE_YTDLP_CONTAINER === '1' || process.env.USE_YTDLP_CONTAINER === 'true';
   const args = [
     '--newline',
     '-f', 'bestaudio/best',
     '-x', '--audio-format', 'mp3', '--audio-quality', String(job.bitrate),
     '--no-warnings', '--no-playlist', '--prefer-ffmpeg',
     '--extractor-args', 'youtube:player_client=android,tv',
-    '-o', job.filePath.replace(/\.mp3$/, '.%(ext)s'),
+    '-o', useSidecar ? `/media/${job.id}.%(ext)s` : job.filePath.replace(/\.mp3$/, '.%(ext)s'),
     '--retries', '3', '--fragment-retries', '3',
     '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36',
     '--add-header', 'Accept-Language:en-US,en;q=0.5',
     '--', job.url,
   ];
 
-  const useSidecar = process.env.USE_YTDLP_CONTAINER === '1' || process.env.USE_YTDLP_CONTAINER === 'true';
-  if (useSidecar) {
-    await requestYtDlpConvert({ url: job.url, out: job.filePath, bitrate: job.bitrate });
-  } else {
-    await new Promise((resolve, reject) => {
-      const child = spawnYtDlp(args, { stdio: ['ignore', 'pipe', 'pipe'] });
-      child.stdout.on('data', (d) => {
-        const s = d.toString();
-        const pct = parseProgress(s);
-        if (pct !== null) update(taskId, { progress: Math.min(99, pct), message: 'Downloading...' });
-      });
-      child.stderr.on('data', (d) => {
-        const s = d.toString();
-        const pct = parseProgress(s);
-        if (pct !== null) update(taskId, { progress: Math.min(99, pct), message: 'Downloading...' });
-      });
-      child.on('error', reject);
-      child.on('close', (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`yt-dlp failed with code ${code}`));
-      });
-    });
-  }
+  await runYtDlp(args);
 
   if (!existsSync(job.filePath)) {
     update(taskId, { status: 'error', message: 'Conversion failed', progress: 0 });

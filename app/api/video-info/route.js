@@ -1,5 +1,4 @@
-import { run } from '../../api/_lib/shell';
-import { spawnYtDlp, requestYtDlpJson } from '../../api/_lib/ytdlp';
+import { runYtDlp } from '../../api/_lib/ytdlp';
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)\/(watch\?v=|embed\/|v\/|shorts\/|.+\?v=)?([^&=%\?]{11})/i;
 
@@ -21,34 +20,13 @@ export async function POST(request) {
       '--extractor-args', 'youtube:player_client=android,tv',
       '--retries', '3',
       '--fragment-retries', '3',
+      '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36',
+      '--add-header', 'Accept-Language:en-US,en;q=0.5',
       '--', url,
     ];
 
-    const headers = [
-      '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36',
-      '--add-header', 'Accept-Language:en-US,en;q=0.5',
-    ];
-
-    const useSidecar = process.env.USE_YTDLP_CONTAINER === '1' || process.env.USE_YTDLP_CONTAINER === 'true';
-    let jsonText;
-    if (useSidecar) {
-      jsonText = await requestYtDlpJson(url);
-    } else {
-      const child = spawnYtDlp([...headers, ...args]);
-      let stdout = '';
-      let stderr = '';
-      await new Promise((resolve, reject) => {
-        child.stdout.on('data', (d) => { stdout += d.toString(); });
-        child.stderr.on('data', (d) => { stderr += d.toString(); });
-        child.on('error', reject);
-        child.on('close', (code) => {
-          if (code === 0) resolve();
-          else reject(new Error(stderr || `yt-dlp exited with code ${code}`));
-        });
-      });
-      jsonText = stdout;
-    }
-    const info = JSON.parse(jsonText);
+    const { stdout } = await runYtDlp(args);
+    const info = JSON.parse(stdout);
 
     const video = {
       id: info.id,

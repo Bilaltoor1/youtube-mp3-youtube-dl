@@ -1,5 +1,4 @@
-import { run } from '../../api/_lib/shell';
-import { spawnYtDlp, requestYtDlpConvert } from '../../api/_lib/ytdlp';
+import { runYtDlp } from '../../api/_lib/ytdlp';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { createReadStream, existsSync } from 'node:fs';
@@ -21,35 +20,24 @@ export async function POST(request) {
     }
 
     const id = randomUUID();
-  // If using sidecar, we need a deterministic /tmp path shared via volume
-  const sharedTmp = process.env.USE_YTDLP_CONTAINER ? '/tmp' : tmpdir();
-  const outPath = join(sharedTmp, `${id}.mp3`);
+    // Use /media for sidecar container, /tmp for local
+    const useSidecar = process.env.USE_YTDLP_CONTAINER === '1' || process.env.USE_YTDLP_CONTAINER === 'true';
+    const baseDir = useSidecar ? '/tmp' : tmpdir(); // Frontend container mounts yttmp3_tmp:/tmp
+    const outPath = join(baseDir, `${id}.mp3`);
 
     const args = [
       '-f', 'bestaudio/best',
       '-x', '--audio-format', 'mp3', '--audio-quality', String(bitrate),
       '--no-warnings', '--no-playlist', '--prefer-ffmpeg',
       '--extractor-args', 'youtube:player_client=android,tv',
-      '-o', join(tmpdir(), `${id}.%(ext)s`),
+      '-o', useSidecar ? `/media/${id}.%(ext)s` : join(baseDir, `${id}.%(ext)s`), // /media inside tnk4on container
       '--retries', '3', '--fragment-retries', '3',
+      '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36',
+      '--add-header', 'Accept-Language:en-US,en;q=0.5',
       '--', url,
     ];
 
-    const headers = [
-      '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36',
-      '--add-header', 'Accept-Language:en-US,en;q=0.5',
-    ];
-
-    const useSidecar = process.env.USE_YTDLP_CONTAINER === '1' || process.env.USE_YTDLP_CONTAINER === 'true';
-    if (useSidecar) {
-      await requestYtDlpConvert({ url, out: outPath, bitrate });
-    } else {
-      await new Promise((resolve, reject) => {
-        const child = spawnYtDlp([...headers, ...args]);
-        child.on('error', reject);
-        child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`yt-dlp exited with code ${code}`))));
-      });
-    }
+    await runYtDlp(args);
 
     if (!existsSync(outPath)) {
       return Response.json({ error: 'Conversion failed' }, { status: 500 });

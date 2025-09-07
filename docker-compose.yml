@@ -12,8 +12,6 @@ services:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=/api
       - USE_YTDLP_CONTAINER=1
-      - YTDLP_HOST=ytdlp
-      - YTDLP_PORT=8080
     volumes:
       - ./logs/frontend:/app/logs
       - yttmp3_tmp:/tmp
@@ -40,15 +38,15 @@ services:
     depends_on:
       - frontend
 
-  # Dedicated yt-dlp worker container (exec commands from Next.js)
+  # Dedicated yt-dlp worker container using official image
   ytdlp:
-    build:
-      context: .
-      dockerfile: Dockerfile.ytdlp
+    image: tnk4on/yt-dlp:latest
     container_name: yttmp3_ytdlp
     restart: unless-stopped
+    entrypoint: ""
+    command: ["sleep", "infinity"]
     volumes:
-      - yttmp3_tmp:/tmp
+      - yttmp3_tmp:/media
     networks:
       - yttmp3_network
 
