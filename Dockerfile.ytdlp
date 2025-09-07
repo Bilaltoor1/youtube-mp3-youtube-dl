@@ -1,0 +1,8 @@
+FROM node:20-alpine
+WORKDIR /srv
+RUN apk add --no-cache ca-certificates ffmpeg yt-dlp python3 py3-pip curl bash coreutils
+COPY ytdlp-server.js ./server.js
+ENV PORT=8080 HOST=0.0.0.0
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD curl -sf http://localhost:8080/health || exit 1
+CMD ["node","server.js"]

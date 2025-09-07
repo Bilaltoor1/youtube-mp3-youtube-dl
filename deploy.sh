@@ -56,35 +56,17 @@ docker system prune -f || true
 print_status "Building Docker images..."
 docker compose build --no-cache
 
-print_status "Starting services (backend, frontend, nginx)..."
-docker compose up -d backend frontend nginx
+print_status "Starting services (frontend, nginx)..."
+docker compose up -d frontend nginx
 
 print_status "Waiting for services to start..."
 sleep 30
-
-# Health check for backend
-print_status "Checking backend health..."
-for i in {1..10}; do
-    if docker compose exec -T backend curl -f http://localhost:5000/api/health > /dev/null 2>&1; then
-        print_success "✅ Backend is running successfully!"
-        break
-    else
-        if [ $i -eq 10 ]; then
-            print_error "❌ Backend health check failed after 10 attempts."
-            print_status "Backend logs:"
-            docker compose logs --tail=20 backend
-        else
-            print_warning "Backend health check attempt $i failed, retrying in 5 seconds..."
-            sleep 5
-        fi
-    fi
-done
 
 # Health check for frontend
 print_status "Checking frontend health..."
 for i in {1..10}; do
     # Check if frontend container is running and check via nginx proxy
-    if docker compose ps frontend | grep -q "Up" && curl -f http://localhost > /dev/null 2>&1; then
+    if docker compose ps frontend | grep -q "Up" && curl -f http://localhost/api/health > /dev/null 2>&1; then
         print_success "✅ Frontend is running successfully!"
         break
     elif docker compose logs frontend 2>/dev/null | grep -q "ready\|started\|listening"; then

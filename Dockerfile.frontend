@@ -23,8 +23,8 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-# Healthcheck deps and runtime libs for Next.js
-RUN apk add --no-cache curl libc6-compat
+# Healthcheck deps, ffmpeg & yt-dlp for API routes
+RUN apk add --no-cache curl libc6-compat ffmpeg yt-dlp
 # Copy standalone output
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
